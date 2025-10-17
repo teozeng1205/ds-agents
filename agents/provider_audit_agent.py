@@ -41,7 +41,10 @@ def build_agent(mcp_server: MCPServerStdio) -> Agent:
         "to analyze provider monitoring events for site-related issues.\n\n"
         "Guidance:\n"
         "- Prefer calling built-in tools: top_site_issues(provider, lookback_days),\n"
-        "  issue_scope_breakdown(provider, lookback_days, per_dim_limit).\n"
+        "  issue_scope_breakdown(provider, lookback_days, per_dim_limit). If a site code is given,\n"
+        "  prefer issue_scope_quick_by_site(provider, site, lookback_days=3, per_dim_limit=5). If the user explicitly\n"
+        "  asks for more dimensions, then use issue_scope_breakdown_by_site(provider, site, lookback_days, per_dim_limit). For scope, default to\n"
+        "  lookback_days=3 and per_dim_limit=5 unless the user asks otherwise to keep queries fast.\n"
         "- If a site code filter is explicitly requested (e.g., sitecode='QF'), use query_audit\n"
         "  and filter BOTH providercode and sitecode with ILIKE, plus {{IS_SITE}}.\n"
         "- Use date window defaults of 7 days unless user asks otherwise.\n"
@@ -87,6 +90,7 @@ async def run_once(question: str) -> str:
             "args": [],
         },
         cache_tools_list=True,
+        client_session_timeout_seconds=180.0,
     ) as server:
         agent = build_agent(server)
         result = await Runner.run(agent, input=question)
@@ -127,4 +131,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-
