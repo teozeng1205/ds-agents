@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Provider Combined Audit Agent
+Market Anomalies Agent
 
-Creates an agent (OpenAI Agents SDK) that connects to the ds-mcp Provider Combined Audit MCP
-server via stdio and answers provider audit questions.
+Creates an agent (OpenAI Agents SDK) that connects to the ds-mcp Market
+Anomalies MCP server via stdio and answers anomaly questions.
 
 Usage:
-  python -m ds-agents.agents.provider_audit_agent "your question"
+  python -m ds-agents.agents.market_anomalies_agent "your question"
 
 Best practices used:
 - MCPServerStdio lifecycle as async context manager
-- Prefer MCP tools; fall back to SQL via query_audit macros when needed
-- Minimal, composable design ready for more agents/handoffs later
+- Prefer MCP tools; fall back to SQL via query_anomalies with {{MLA}} macro
+- Minimal, composable design
 """
 
 from __future__ import annotations
@@ -32,29 +32,31 @@ def repo_root() -> Path:
 
 def ds_mcp_script_path() -> str:
     # Use the ds-mcp stdio run script which configures env + .venv
-    return str(repo_root() / "ds-mcp" / "scripts" / "run_provider_combined_audit.sh")
+    return str(repo_root() / "ds-mcp" / "scripts" / "run_market_anomalies.sh")
 
 
 def build_agent(mcp_server: MCPServerStdio) -> Agent:
     instructions = (
-        "You are the Provider Combined Audit agent. Default to using query_audit with SQL macros.\n"
-        "Only use specialized tools if explicitly asked for a quick summary.\n\n"
+        "You are the Market Anomalies agent. Default to using query_anomalies with SQL macros.\n"
+        "Only use other tools when explicitly asked (e.g., quick today overview or schema).\n\n"
         "Guidance:\n"
-        "- Default: write a SELECT (or WITH) using macros and call query_audit.\n"
-        "- Macros: {{PCA}} (table), {{ISSUE_TYPE}}, {{OD}}, {{EVENT_TS}}, {{OBS_HOUR}}, {{IS_SITE}}, {{IS_INVALID}}.\n"
-        "- Keep outputs concise with clear bullets; order by importance.\n\n"
+        "- Default: write a SELECT (or WITH) using {{MLA}} and call query_anomalies.\n"
+        "- Keep answers concise with clear bullets; order by importance.\n\n"
+        "Macros: {{MLA}} expands to analytics.market_level_anomalies_v3.\n\n"
         "Examples:\n"
-        "- Top site issues: SELECT {{ISSUE_TYPE}} AS issue_key, COUNT(*) cnt FROM {{PCA}}\n"
-        "  WHERE providercode ILIKE '%{provider}%' AND TO_DATE(scheduledate::VARCHAR,'YYYYMMDD') >= CURRENT_DATE - {days}\n"
-        "  GROUP BY 1 ORDER BY 2 DESC LIMIT {limit};\n"
-        "- Quick scope (obs_hour, pos) for provider+site: two queries with {{OBS_HOUR}} and pos.\n"
+        "- Top anomalies by impact for a customer/date:\n"
+        "  SELECT seg_mkt, cp, impact_score FROM {{MLA}}\n"
+        "  WHERE customer = '{customer}' AND sales_date = {sales_date} AND any_anomaly = 1\n"
+        "  ORDER BY impact_score DESC LIMIT 20;\n"
+        "- Daily anomaly counts per customer:\n"
+        "  SELECT customer, sales_date, COUNT(*) cnt FROM {{MLA}} WHERE any_anomaly=1\n"
+        "  GROUP BY customer, sales_date ORDER BY sales_date DESC LIMIT 50;\n"
     )
 
-    # Ask the model to choose tools when relevant; keep the temperature low
     model_settings = ModelSettings(temperature=0.2)
 
     return Agent(
-        name="Provider Audit Agent",
+        name="Market Anomalies Agent",
         instructions=instructions,
         mcp_servers=[mcp_server],
         model_settings=model_settings,
@@ -67,12 +69,12 @@ async def run_once(question: str) -> str:
         raise RuntimeError(f"Could not find MCP script at: {script}")
 
     allowed_tools = [
-        "query_audit",      # default macro SQL tool
-        "get_table_schema", # allow schema lookups
+        "query_anomalies",   # default macro SQL tool
+        "get_table_schema",  # allow schema lookups
     ]
 
     async with MCPServerStdio(
-        name="Provider Combined Audit (stdio)",
+        name="Market Anomalies (stdio)",
         params={
             "command": script,
             "args": [],
@@ -87,7 +89,7 @@ async def run_once(question: str) -> str:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Run the Provider Audit Agent")
+    parser = argparse.ArgumentParser(description="Run the Market Anomalies Agent")
     parser.add_argument(
         "question",
         nargs="*",
@@ -100,14 +102,12 @@ def main(argv: list[str]) -> int:
         print(asyncio.run(run_once(question)))
         return 0
 
-    # Demo flow for the two example questions
+    # Demo flow for two example questions
     demo_q1 = (
-        "Provider code QL2 with site code QF had an increase in site-related issues recently. "
-        "What are the top site issues in the last 7 days?"
+        "Which customers have the most anomalies today? Then show a quick CP distribution."
     )
     demo_q2 = (
-        "Provider code QL2 with site code QF: What is the scope of the issue? "
-        "Focus on obs hour, POS, OD, cabin, and depart periods."
+        "For customer B6 on 20251014, list top anomalies by impact_score and show a few markets."
     )
 
     print("Q1:", demo_q1)

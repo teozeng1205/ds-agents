@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run the Provider Audit Agent with correct env, venv and PYTHONPATH.
+# Run the Market Anomalies Agent with correct env, venv and PYTHONPATH.
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="$SCRIPT_DIR/../.."
@@ -20,7 +20,5 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# Use the installed OpenAI Agents SDK (pip install openai-agents). No PYTHONPATH override needed.
-# ds-mcp MCP server script handles its own PYTHONPATH internally.
+exec "$VENV_PY" "$ROOT_DIR/ds-agents/agents/market_anomalies_agent.py" "$@"
 
-exec "$VENV_PY" "$ROOT_DIR/ds-agents/agents/provider_audit_agent.py" "$@"

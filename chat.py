@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """
-Interactive chat interface for the Provider Combined Audit agent.
+Interactive chat interface for Provider or Market Anomalies agents.
 
-Best practices used from the OpenAI Agents SDK docs:
+Defaults to SQL macro tools in all cases (query_audit / query_anomalies),
+keeping the tool surface minimal and predictable. You can still call
+get_table_schema for quick schema lookups.
+
+Best practices used:
 - Keep a single MCP stdio server process alive across turns.
 - Manage multi‑turn conversation via RunResult.to_input_list() (manual conversation state).
-- Allow the model to call multiple tools in a turn (default tool_use_behavior).
-- Filter MCP tools to a concise, fast set.
+- Filter MCP tools to a small, fast set (macro query + schema only by default).
 
 Run:
-  python ds-agents/chat.py
+  python ds-agents/chat.py --agent provider
+  python ds-agents/chat.py --agent anomalies
 
 Type '/exit' to quit.
 """
@@ -20,6 +24,7 @@ import asyncio
 import sys
 import time
 from collections import Counter
+import argparse
 from pathlib import Path
 
 from agents import Runner
@@ -27,7 +32,7 @@ from agents.mcp import MCPServerStdio, create_static_tool_filter
 
 
 def _load_provider_agent_module():
-    """Load the provider audit agent builder dynamically (no packaging required)."""
+    """Load the provider audit agent (no packaging required)."""
     import importlib.util
 
     mod_path = Path(__file__).resolve().parent / "agents" / "provider_audit_agent.py"
@@ -39,29 +44,47 @@ def _load_provider_agent_module():
     return module
 
 
-async def chat() -> int:
-    provider_agent = _load_provider_agent_module()
+def _load_anomalies_agent_module():
+    """Load the market anomalies agent (no packaging required)."""
+    import importlib.util
 
-    # Start the MCP server (stdio) once for the entire session
-    script = str((Path(__file__).resolve().parents[1] / "ds-mcp" / "scripts" / "run_provider_combined_audit.sh"))
-    allowed_tools = [
-        "overview_site_issues_today",
-        "top_site_issues",
-        "list_provider_sites",
-        "issue_scope_quick_by_site",
-        "issue_scope_by_site_dimensions",
-        "get_table_schema",
-    ]
+    mod_path = Path(__file__).resolve().parent / "agents" / "market_anomalies_agent.py"
+    spec = importlib.util.spec_from_file_location("market_anomalies_agent_module", mod_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Cannot load market_anomalies_agent from {mod_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
-    print("Starting MCP server …", file=sys.stderr)
+
+async def chat(agent_kind: str) -> int:
+    # Resolve agent + MCP stdio script + default macro tools
+    if agent_kind == "anomalies":
+        agent_mod = _load_anomalies_agent_module()
+        script = str((Path(__file__).resolve().parents[1] / "ds-mcp" / "scripts" / "run_market_anomalies.sh"))
+        allowed_tools = [
+            "query_anomalies",   # default SQL macro tool
+            "get_table_schema",
+        ]
+        server_name = "Market Anomalies (stdio)"
+    else:
+        agent_mod = _load_provider_agent_module()
+        script = str((Path(__file__).resolve().parents[1] / "ds-mcp" / "scripts" / "run_provider_combined_audit.sh"))
+        allowed_tools = [
+            "query_audit",       # default SQL macro tool
+            "get_table_schema",
+        ]
+        server_name = "Provider Combined Audit (stdio)"
+
+    print(f"Starting MCP server for {agent_kind} …", file=sys.stderr)
     async with MCPServerStdio(
-        name="Provider Combined Audit (stdio)",
+        name=server_name,
         params={"command": script, "args": []},
         cache_tools_list=True,
         client_session_timeout_seconds=180.0,
         tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
     ) as server:
-        agent = provider_agent.build_agent(server)
+        agent = agent_mod.build_agent(server)
 
         # Manual conversation management using to_input_list()
         # See: docs/running_agents.md → Manual conversation management
@@ -126,7 +149,10 @@ async def chat() -> int:
 
 
 def main() -> int:
-    return asyncio.run(chat())
+    parser = argparse.ArgumentParser(description="Interactive chat for provider or anomalies agents (macro-SQL first)")
+    parser.add_argument("--agent", choices=["provider", "anomalies"], default="provider", help="Which agent to chat with")
+    args = parser.parse_args()
+    return asyncio.run(chat(args.agent))
 
 
 if __name__ == "__main__":
