@@ -47,6 +47,7 @@ async def chat() -> int:
     allowed_tools = [
         "overview_site_issues_today",
         "top_site_issues",
+        "list_provider_sites",
         "issue_scope_quick_by_site",
         "issue_scope_by_site_dimensions",
         "get_table_schema",

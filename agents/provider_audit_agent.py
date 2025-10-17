@@ -41,6 +41,7 @@ def build_agent(mcp_server: MCPServerStdio) -> Agent:
         "to analyze provider monitoring events for site-related issues.\n\n"
         "Guidance:\n"
         "- For general 'today/overview' questions (no provider): use overview_site_issues_today(per_dim_limit=5).\n"
+        "- For 'what site' or site codes by provider: list_provider_sites(provider, lookback_days, limit).\n"
         "- Use: top_site_issues(provider, lookback_days) for provider-specific top issues.\n"
         "- For site-specific scope: prefer issue_scope_quick_by_site(provider, site, lookback_days=3, per_dim_limit=5)\n"
         "  (obs_hour + POS only). If the user asks for OD, triptype, LOS, cabin, depart week/DOW,\n"
@@ -86,6 +87,7 @@ async def run_once(question: str) -> str:
     allowed_tools = [
         "overview_site_issues_today",
         "top_site_issues",
+        "list_provider_sites",
         "issue_scope_quick_by_site",
         "issue_scope_by_site_dimensions",
         "get_table_schema",
