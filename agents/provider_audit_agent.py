@@ -40,11 +40,10 @@ def build_agent(mcp_server: MCPServerStdio) -> Agent:
         "You are the Provider Combined Audit agent. Use the MCP tools from the connected server\n"
         "to analyze provider monitoring events for site-related issues.\n\n"
         "Guidance:\n"
-        "- Prefer calling built-in tools: top_site_issues(provider, lookback_days),\n"
-        "  issue_scope_breakdown(provider, lookback_days, per_dim_limit). If a site code is given,\n"
-        "  prefer issue_scope_quick_by_site(provider, site, lookback_days=3, per_dim_limit=5). If the user explicitly\n"
-        "  asks for more dimensions, then use issue_scope_breakdown_by_site(provider, site, lookback_days, per_dim_limit). For scope, default to\n"
-        "  lookback_days=3 and per_dim_limit=5 unless the user asks otherwise to keep queries fast.\n"
+        "- Use: top_site_issues(provider, lookback_days) for top issues.\n"
+        "- For site-specific scope: prefer issue_scope_quick_by_site(provider, site, lookback_days=3, per_dim_limit=5)\n"
+        "  (obs_hour + POS only). If the user asks for OD, triptype, LOS, cabin, depart week/DOW,\n"
+        "  call issue_scope_by_site_dimensions(provider, site, dims=[...], lookback_days=3, per_dim_limit=5).\n"
         "- If a site code filter is explicitly requested (e.g., sitecode='QF'), use query_audit\n"
         "  and filter BOTH providercode and sitecode with ILIKE, plus {{IS_SITE}}.\n"
         "- Use date window defaults of 7 days unless user asks otherwise.\n"
@@ -86,6 +85,7 @@ async def run_once(question: str) -> str:
     allowed_tools = [
         "top_site_issues",
         "issue_scope_quick_by_site",
+        "issue_scope_by_site_dimensions",
         "get_table_schema",
     ]
 
