@@ -44,7 +44,13 @@ async def chat() -> int:
 
     # Start the MCP server (stdio) once for the entire session
     script = str((Path(__file__).resolve().parents[1] / "ds-mcp" / "scripts" / "run_provider_combined_audit.sh"))
-    allowed_tools = ["top_site_issues", "issue_scope_quick_by_site", "get_table_schema"]
+    allowed_tools = [
+        "overview_site_issues_today",
+        "top_site_issues",
+        "issue_scope_quick_by_site",
+        "issue_scope_by_site_dimensions",
+        "get_table_schema",
+    ]
 
     print("Starting MCP server …", file=sys.stderr)
     async with MCPServerStdio(
@@ -124,4 +130,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -40,7 +40,8 @@ def build_agent(mcp_server: MCPServerStdio) -> Agent:
         "You are the Provider Combined Audit agent. Use the MCP tools from the connected server\n"
         "to analyze provider monitoring events for site-related issues.\n\n"
         "Guidance:\n"
-        "- Use: top_site_issues(provider, lookback_days) for top issues.\n"
+        "- For general 'today/overview' questions (no provider): use overview_site_issues_today(per_dim_limit=5).\n"
+        "- Use: top_site_issues(provider, lookback_days) for provider-specific top issues.\n"
         "- For site-specific scope: prefer issue_scope_quick_by_site(provider, site, lookback_days=3, per_dim_limit=5)\n"
         "  (obs_hour + POS only). If the user asks for OD, triptype, LOS, cabin, depart week/DOW,\n"
         "  call issue_scope_by_site_dimensions(provider, site, dims=[...], lookback_days=3, per_dim_limit=5).\n"
@@ -83,6 +84,7 @@ async def run_once(question: str) -> str:
         raise RuntimeError(f"Could not find MCP script at: {script}")
 
     allowed_tools = [
+        "overview_site_issues_today",
         "top_site_issues",
         "issue_scope_quick_by_site",
         "issue_scope_by_site_dimensions",
