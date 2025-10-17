@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from agents import Agent, Runner, ModelSettings
-from agents.mcp import MCPServerStdio
+from agents.mcp import MCPServerStdio, create_static_tool_filter
 
 
 def repo_root() -> Path:
@@ -83,6 +83,12 @@ async def run_once(question: str) -> str:
     if not os.path.exists(script):
         raise RuntimeError(f"Could not find MCP script at: {script}")
 
+    allowed_tools = [
+        "top_site_issues",
+        "issue_scope_quick_by_site",
+        "get_table_schema",
+    ]
+
     async with MCPServerStdio(
         name="Provider Combined Audit (stdio)",
         params={
@@ -91,6 +97,7 @@ async def run_once(question: str) -> str:
         },
         cache_tools_list=True,
         client_session_timeout_seconds=180.0,
+        tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
     ) as server:
         agent = build_agent(server)
         result = await Runner.run(agent, input=question)

@@ -20,8 +20,7 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# Wire Agents SDK + ds-mcp src on sys.path
-export PYTHONPATH="$ROOT_DIR/openai-agents-python/src:$ROOT_DIR/ds-mcp/src:$PYTHONPATH"
+# Use the installed OpenAI Agents SDK (pip install openai-agents). No PYTHONPATH override needed.
+# ds-mcp MCP server script handles its own PYTHONPATH internally.
 
 exec "$VENV_PY" "$ROOT_DIR/ds-agents/agents/provider_audit_agent.py" "$@"
-
