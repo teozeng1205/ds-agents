@@ -64,11 +64,12 @@ async def main() -> None:
             out = ""
             try:
                 from agents.mcp import MCPServerStdio, create_static_tool_filter
-                script = str((Path(__file__).resolve().parents[2] / 'ds-mcp' / 'scripts' / 'run_provider_combined_audit.sh'))
-                allowed_tools = ["top_site_issues", "issue_scope_quick_by_site", "get_table_schema"]
+                # Use env.sh-first wrapper and new combined scope tool
+                script = str((Path(__file__).resolve().parents[2] / 'ds-agents' / 'scripts' / 'run_mcp_provider_audit_stdio.sh'))
+                allowed_tools = ["top_site_issues", "issue_scope_combined", "get_table_schema"]
                 async with MCPServerStdio(
                     name="Provider Combined Audit (stdio)",
-                    params={"command": script, "args": []},
+                    params={"command": "bash", "args": [script]},
                     cache_tools_list=True,
                     client_session_timeout_seconds=180.0,
                     tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
