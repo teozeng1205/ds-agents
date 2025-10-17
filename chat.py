@@ -75,6 +75,7 @@ async def chat(agent_kind: str) -> int:
         allowed_tools = [
             "query_audit",       # default SQL macro tool
             "get_table_schema",
+            "issue_scope_combined",  # efficient multi-dimension scope in one query
         ]
         server_name = "Provider Combined Audit (stdio)"
 
