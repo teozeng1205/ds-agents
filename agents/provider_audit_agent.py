@@ -45,7 +45,9 @@ def build_agent(mcp_server: MCPServerStdio) -> Agent:
         "- Keep outputs concise with clear bullets; order by importance.\n\n"
         "Examples:\n"
         "- Top site issues: SELECT {{ISSUE_TYPE}} AS issue_key, COUNT(*) cnt FROM {{PCA}}\n"
-        "  WHERE providercode ILIKE '%{provider}%' AND TO_DATE(scheduledate::VARCHAR,'YYYYMMDD') >= CURRENT_DATE - {days}\n"
+        "  WHERE providercode ILIKE '%{provider}%'\n"
+        "    AND NULLIF(TRIM(issue_sources::VARCHAR), '') IS NOT NULL\n"
+        "    AND TO_DATE(scheduledate::VARCHAR,'YYYYMMDD') >= CURRENT_DATE - {days}\n"
         "  GROUP BY 1 ORDER BY 2 DESC LIMIT {limit};\n"
         "- Quick scope (obs_hour, pos) for provider+site: two queries with {{OBS_HOUR}} and pos.\n"
     )
