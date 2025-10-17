@@ -38,9 +38,10 @@ def ds_mcp_script_path() -> str:
 def build_agent(mcp_server: MCPServerStdio) -> Agent:
     instructions = (
         "You are the Provider Combined Audit agent. Default to using query_audit with SQL macros.\n"
-        "Only use specialized tools if explicitly asked for a quick summary.\n\n"
+        "Prefer the issue_scope_combined tool when the user asks for multi-dimension scope (e.g., obs_hour/POS/triptype/LOS/OD/cabin/depart periods).\n\n"
         "Guidance:\n"
         "- Default: write a SELECT (or WITH) using macros and call query_audit.\n"
+        "- For scope across dimensions in one query, call issue_scope_combined with dims like ['obs_hour','pos','triptype','los'] and provider/site.\n"
         "- Macros: {{PCA}} (table), {{ISSUE_TYPE}}, {{OD}}, {{EVENT_TS}}, {{OBS_HOUR}}, {{IS_SITE}}, {{IS_INVALID}}.\n"
         "- Keep outputs concise with clear bullets; order by importance.\n\n"
         "Examples:\n"
@@ -69,8 +70,9 @@ async def run_once(question: str) -> str:
         raise RuntimeError(f"Could not find MCP script at: {script}")
 
     allowed_tools = [
-        "query_audit",      # default macro SQL tool
-        "get_table_schema", # allow schema lookups
+        "query_audit",           # default macro SQL tool
+        "get_table_schema",      # allow schema lookups
+        "issue_scope_combined",  # multi-dimension scope in one query
     ]
 
     async with MCPServerStdio(
