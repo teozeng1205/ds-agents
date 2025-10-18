@@ -31,8 +31,8 @@ def repo_root() -> Path:
 
 
 def ds_mcp_script_path() -> str:
-    # Use the ds-mcp stdio run script which configures env + .venv
-    return str(repo_root() / "ds-mcp" / "scripts" / "run_market_anomalies.sh")
+    # Use the env.sh-first wrapper which configures env + serialized SSO
+    return str(repo_root() / "ds-agents" / "scripts" / "run_mcp_market_anomalies_stdio.sh")
 
 
 def build_agent(mcp_server: MCPServerStdio) -> Agent:

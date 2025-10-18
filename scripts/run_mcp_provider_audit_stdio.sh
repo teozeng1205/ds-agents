@@ -33,7 +33,7 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# Ensure ds-mcp sources are importable (servers also add repo root for threevictors)
-export PYTHONPATH="$DS_MCP_DIR/src:$ROOT_DIR:${PYTHONPATH:-}"
+# Ensure ds-mcp sources are importable (threevictors should be pip installed)
+export PYTHONPATH="$DS_MCP_DIR/src:${PYTHONPATH:-}"
 
 exec "$VENV_PY" "$DS_MCP_DIR/src/ds_mcp/servers/provider_combined_audit_server.py"
