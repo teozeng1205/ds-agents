@@ -24,6 +24,7 @@ from pathlib import Path
 
 from agents import Agent, Runner, ModelSettings
 from agents.mcp import MCPServerStdio, create_static_tool_filter
+from dsagents.mcp_agents import ProviderAuditMCPAgent
 
 
 def repo_root() -> Path:
@@ -36,56 +37,14 @@ def ds_mcp_script_path() -> str:
 
 
 def build_agent(mcp_server: MCPServerStdio) -> Agent:
-    instructions = (
-        "You are the Provider Combined Audit agent. Default to using query_audit with SQL macros.\n"
-        "Prefer the issue_scope_combined tool when the user asks for multi-dimension scope (e.g., obs_hour/POS/triptype/LOS/OD/cabin/depart periods).\n\n"
-        "Guidance:\n"
-        "- Default: write a SELECT (or WITH) using macros and call query_audit.\n"
-        "- For scope across dimensions in one query, call issue_scope_combined with dims like ['obs_hour','pos','triptype','los'] and provider/site.\n"
-        "- Macros: {{PCA}} (table), {{ISSUE_TYPE}}, {{OD}}, {{EVENT_TS}}, {{OBS_HOUR}}, {{IS_SITE}}, {{IS_INVALID}}.\n"
-        "- Keep outputs concise with clear bullets; order by importance.\n\n"
-        "Examples:\n"
-        "- Top site issues: SELECT {{ISSUE_TYPE}} AS issue_key, COUNT(*) cnt FROM {{PCA}}\n"
-        "  WHERE providercode ILIKE '%{provider}%'\n"
-        "    AND COALESCE(NULLIF(TRIM(issue_reasons::VARCHAR), ''), NULLIF(TRIM(issue_sources::VARCHAR), '')) IS NOT NULL\n"
-        "    AND TO_DATE(sales_date::VARCHAR,'YYYYMMDD') >= CURRENT_DATE - {days}\n"
-        "  GROUP BY 1 ORDER BY 2 DESC LIMIT {limit};\n"
-        "- Quick scope (obs_hour, pos) for provider+site: two queries with {{OBS_HOUR}} and pos.\n"
-    )
-
-    # Ask the model to choose tools when relevant; keep the temperature low
-    model_settings = ModelSettings(temperature=0.2)
-
-    return Agent(
-        name="Provider Audit Agent",
-        instructions=instructions,
-        mcp_servers=[mcp_server],
-        model_settings=model_settings,
-    )
+    """Backwards-compatible builder using the OOP wrapper."""
+    return ProviderAuditMCPAgent().build(mcp_server)
 
 
 async def run_once(question: str) -> str:
-    script = ds_mcp_script_path()
-    if not os.path.exists(script):
-        raise RuntimeError(f"Could not find MCP script at: {script}")
-
-    allowed_tools = [
-        "query_audit",           # default macro SQL tool
-        "get_table_schema",      # allow schema lookups
-        "issue_scope_combined",  # multi-dimension scope in one query
-    ]
-
-    async with MCPServerStdio(
-        name="Provider Combined Audit (stdio)",
-        params={
-            "command": script,
-            "args": [],
-        },
-        cache_tools_list=True,
-        client_session_timeout_seconds=180.0,
-        tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
-    ) as server:
-        agent = build_agent(server)
+    agent_oop = ProviderAuditMCPAgent()
+    async with agent_oop.create_mcp_server() as server:
+        agent = agent_oop.build(server)
         result = await Runner.run(agent, input=question)
         return result.final_output or ""
 
