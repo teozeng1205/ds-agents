@@ -34,7 +34,7 @@ QUESTIONS = [
     "AA has a recent increase in site-related issues. What are the top site issues in the last 7 days?",
     "For provider AA, what is the scope of site issues in the last 3 days? Focus on observation hour and POS only.",
 
-    # Provider + sitecode (forces SQL fallback path)
+    # Provider + sitecode
     "Provider code QL2 with site code QF has an increase in site-related issues. What are the top site issues?",
     "Provider code QL2 with site code QF: Give a quick scope (observation hour and POS) in the last 3 days.",
 

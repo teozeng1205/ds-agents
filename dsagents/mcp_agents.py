@@ -61,6 +61,7 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
     allowed_tools = (
         "query_audit",
         "get_table_schema",
+        "top_site_issues",
         "issue_scope_combined",
     )
 
@@ -69,8 +70,10 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
             "You are the Provider Combined Audit agent. Default to using query_audit with SQL macros.\n"
             "Prefer the issue_scope_combined tool when the user asks for multi-dimension scope (obs_hour/POS/triptype/LOS/OD/cabin/depart periods).\n\n"
             "Guidance:\n"
+            "- Use sales_date (YYYYMMDD int) for time filters and partition pruning.\n"
             "- For site issues, select COALESCE(issue_reasons, issue_sources) as issue_key and filter out empty values.\n"
             "- For scope, call issue_scope_combined with dims like ['obs_hour','pos','triptype','los'] and provider/site.\n"
+            "- For today vs usual (7-day average), compute via sales_date; avoid casting timestamps for coarse date filters.\n"
             "- Keep answers concise with clear bullets; order by importance.\n"
         )
         super().__init__(name=self.name, instructions=instructions)
@@ -107,4 +110,3 @@ __all__ = [
     "ProviderAuditMCPAgent",
     "MarketAnomaliesMCPAgent",
 ]
-
