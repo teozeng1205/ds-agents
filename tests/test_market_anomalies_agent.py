@@ -50,7 +50,7 @@ async def main() -> None:
         try:
             t0 = time.perf_counter()
             from agents.mcp import MCPServerStdio, create_static_tool_filter
-            script = str((Path(__file__).resolve().parents[2] / 'ds-mcp' / 'scripts' / 'run_market_anomalies.sh'))
+            script = str((Path(__file__).resolve().parents[2] / 'ds-mcp' / 'scripts' / 'run_mcp_server.sh'))
             allowed_tools = [
                 "query_anomalies",
                 "get_table_schema",
@@ -62,7 +62,7 @@ async def main() -> None:
             try:
                 async with MCPServerStdio(
                     name="Market Anomalies (stdio)",
-                    params={"command": script, "args": []},
+                    params={"command": "bash", "args": [script, 'anomalies']},
                     cache_tools_list=True,
                     client_session_timeout_seconds=180.0,
                     tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
@@ -107,4 +107,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-

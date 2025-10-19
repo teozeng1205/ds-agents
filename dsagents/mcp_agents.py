@@ -41,9 +41,13 @@ class BaseMCPAgent:
         script = str(self.get_wrapper_script())
         if not os.path.exists(script):
             raise RuntimeError(f"Wrapper script not found: {script}")
+        # Concrete subclasses declare server_kind: "provider" or "anomalies"
+        server_kind = getattr(self, "server_kind", None)
+        if not server_kind:
+            raise RuntimeError("server_kind not set on agent; expected 'provider' or 'anomalies'")
         return MCPServerStdio(
             name=self.get_server_name(),
-            params={"command": "bash", "args": [script]},
+            params={"command": "bash", "args": [script, server_kind]},
             cache_tools_list=True,
             client_session_timeout_seconds=self.client_session_timeout_seconds,
             tool_filter=create_static_tool_filter(allowed_tool_names=list(self.allowed_tools)),
@@ -58,6 +62,7 @@ class BaseMCPAgent:
 
 class ProviderAuditMCPAgent(BaseMCPAgent):
     name = "Provider Combined Audit (stdio)"
+    server_kind = "provider"
     allowed_tools = (
         "query_audit",
         "get_table_schema",
@@ -79,11 +84,13 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
         super().__init__(name=self.name, instructions=instructions)
 
     def get_wrapper_script(self) -> Path:
-        return Path(__file__).resolve().parents[2] / "ds-agents" / "scripts" / "run_mcp_provider_audit_stdio.sh"
+        # Unified server launcher
+        return Path(__file__).resolve().parents[2] / "ds-mcp" / "scripts" / "run_mcp_server.sh"
 
 
 class MarketAnomaliesMCPAgent(BaseMCPAgent):
     name = "Market Anomalies (stdio)"
+    server_kind = "anomalies"
     allowed_tools = (
         "query_anomalies",
         "get_table_schema",
@@ -102,7 +109,8 @@ class MarketAnomaliesMCPAgent(BaseMCPAgent):
         super().__init__(name=self.name, instructions=instructions)
 
     def get_wrapper_script(self) -> Path:
-        return Path(__file__).resolve().parents[2] / "ds-agents" / "scripts" / "run_mcp_market_anomalies_stdio.sh"
+        # Unified server launcher
+        return Path(__file__).resolve().parents[2] / "ds-mcp" / "scripts" / "run_mcp_server.sh"
 
 
 __all__ = [

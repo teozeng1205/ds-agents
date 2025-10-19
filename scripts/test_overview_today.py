@@ -13,12 +13,12 @@ from agents.mcp import MCPServerStdio
 
 async def main() -> int:
     repo_root = Path(__file__).resolve().parents[2]
-    wrapper = repo_root / "ds-agents" / "scripts" / "run_mcp_provider_audit_stdio.sh"
+    wrapper = repo_root / "ds-mcp" / "scripts" / "run_mcp_server.sh"
     if not wrapper.exists():
         raise SystemExit(f"Wrapper not found: {wrapper}")
 
     async with MCPServerStdio(
-        params={"command": "bash", "args": [str(wrapper)]},
+            params={"command": "bash", "args": [str(wrapper), "provider"]},
         cache_tools_list=True,
         client_session_timeout_seconds=180.0,
         name="Provider Combined Audit (test)",

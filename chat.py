@@ -59,10 +59,9 @@ def _load_anomalies_agent_module():
 
 async def chat(agent_kind: str) -> int:
     # Resolve agent + MCP stdio script + default macro tools
+    launcher = str((Path(__file__).resolve().parents[1] / "ds-mcp" / "scripts" / "run_mcp_server.sh"))
     if agent_kind == "anomalies":
         agent_mod = _load_anomalies_agent_module()
-        # Use wrapper that sources env.sh and reuses shared AWS setup
-        script = str((Path(__file__).resolve().parent / "scripts" / "run_mcp_market_anomalies_stdio.sh"))
         allowed_tools = [
             "query_anomalies",   # default SQL macro tool
             "get_table_schema",
@@ -70,8 +69,6 @@ async def chat(agent_kind: str) -> int:
         server_name = "Market Anomalies (stdio)"
     else:
         agent_mod = _load_provider_agent_module()
-        # Use wrapper that sources env.sh and reuses shared AWS setup
-        script = str((Path(__file__).resolve().parent / "scripts" / "run_mcp_provider_audit_stdio.sh"))
         allowed_tools = [
             "query_audit",       # default SQL macro tool
             "get_table_schema",
@@ -82,8 +79,8 @@ async def chat(agent_kind: str) -> int:
     print(f"Starting MCP server for {agent_kind} …", file=sys.stderr)
     async with MCPServerStdio(
         name=server_name,
-        # Run via bash to avoid relying on executable bit
-        params={"command": "bash", "args": [script]},
+        # Run unified ds-mcp server launcher with explicit kind argument
+        params={"command": "bash", "args": [launcher, agent_kind]},
         cache_tools_list=True,
         client_session_timeout_seconds=180.0,
         tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),

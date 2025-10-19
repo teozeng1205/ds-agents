@@ -32,8 +32,8 @@ def repo_root() -> Path:
 
 
 def ds_mcp_script_path() -> str:
-    # Use the env.sh-first wrapper which configures env + serialized SSO
-    return str(repo_root() / "ds-agents" / "scripts" / "run_mcp_market_anomalies_stdio.sh")
+    # Unified launcher used by OOP agent; chat.py uses the same
+    return str(repo_root() / "ds-mcp" / "scripts" / "run_mcp_server.sh")
 
 
 def build_agent(mcp_server: MCPServerStdio) -> Agent:
