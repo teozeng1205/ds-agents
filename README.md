@@ -12,12 +12,6 @@ ds-agents
   - Provider: `python ds-agents/chat.py --agent provider`
   - Anomalies: `python ds-agents/chat.py --agent anomalies`
 
-- Claude Desktop
-  - Add servers with absolute paths:
-    - Provider: `bash /ABS/PATH/TO/agents/ds-mcp/scripts/run_mcp_server.sh provider`
-    - Anomalies: `bash /ABS/PATH/TO/agents/ds-mcp/scripts/run_mcp_server.sh anomalies`
-  - Tip: `aws sso login --profile 3VDEV` before launch
-
 - Docker
   - Build: `docker compose build`
   - Run: `OPENAI_API_KEY=sk-... docker compose run --rm chat-provider` (or `chat-anomalies`)
