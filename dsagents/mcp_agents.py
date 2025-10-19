@@ -47,7 +47,7 @@ class BaseMCPAgent:
             raise RuntimeError("server_kind not set on agent; expected 'provider' or 'anomalies'")
         return MCPServerStdio(
             name=self.get_server_name(),
-            params={"command": "bash", "args": [script, server_kind]},
+            params={"command": "bash", "args": [script, server_kind], "env": {"PYTHON": sys.executable}},
             cache_tools_list=True,
             client_session_timeout_seconds=self.client_session_timeout_seconds,
             tool_filter=create_static_tool_filter(allowed_tool_names=list(self.allowed_tools)),

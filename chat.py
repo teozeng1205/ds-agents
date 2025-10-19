@@ -77,10 +77,13 @@ async def chat(agent_kind: str) -> int:
         server_name = "Provider Combined Audit (stdio)"
 
     print(f"Starting MCP server for {agent_kind} …", file=sys.stderr)
+    # Ensure the MCP server uses the same Python interpreter as this process
+    server_env = {"PYTHON": sys.executable}
+
     async with MCPServerStdio(
         name=server_name,
         # Run unified ds-mcp server launcher with explicit kind argument
-        params={"command": "bash", "args": [launcher, agent_kind]},
+        params={"command": "bash", "args": [launcher, agent_kind], "env": server_env},
         cache_tools_list=True,
         client_session_timeout_seconds=180.0,
         tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
