@@ -24,7 +24,7 @@ from pathlib import Path
 
 from agents import Agent, Runner, ModelSettings
 from agents.mcp import MCPServerStdio, create_static_tool_filter
-from dsagents.mcp_agents import MarketAnomaliesMCPAgent
+from ds_agents.mcp_agents import MarketAnomaliesMCPAgent
 
 
 def repo_root() -> Path:

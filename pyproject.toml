@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ds-agents"
+version = "0.1.0"
+description = "Agent wrappers and helpers for DS workflows"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "ATPCO Data Science" }
+]
+dependencies = [
+  "openai-agents>=0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ds_agents*"]
