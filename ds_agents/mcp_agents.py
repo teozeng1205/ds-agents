@@ -110,7 +110,7 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
             "     GROUP BY 1, 2, 3\n"
             "     ORDER BY issue_count DESC\n"
             "     LIMIT 10;\n"
-            "   Substitute the correct provider/site, adjust DAYS/LIMIT, and extend the SELECT/GROUP BY clauses when additional dims are needed (triptype, los, od, cabin, depart periods, travel DOW, etc.).\n"
+            "   Substitute the correct provider/site, adjust DAYS/LIMIT, and extend the SELECT/GROUP BY clauses when additional dims are needed (triptype, los, od, cabin as needed).\n"
             "3. If a published tool meets the need, you may call the *_flex helpers; always include the original question in the \"request\" argument plus explicit provider/site when known (e.g., {\"tool\": \"top_site_issues_flex\", \"arguments\": {\"request\": \"Top site issues for provider QL2 last 3 days\", \"lookback_days\": 3, \"limit\": 10}}).\n"
             "4. After any tool call, parse the JSON string with json.loads. If it contains \"error\", report the failure succinctly. If row_count == 0, reply that no matching rows were found. Summaries must be concise bullet points that cite the tool (e.g., “- EXP: 83k issues (query_audit)”).\n"
             "5. Never reference the table directly—always rely on macros such as {{PCA}}, {{ISSUE_TYPE}}, and {{EVENT_TS:alias}}. Use single quotes for string literals.\n\n"
