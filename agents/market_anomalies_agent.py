@@ -6,11 +6,11 @@ Creates an agent (OpenAI Agents SDK) that connects to the ds-mcp Market
 Anomalies MCP server via stdio and answers anomaly questions.
 
 Usage:
-  python -m ds-agents.agents.market_anomalies_agent "your question"
+  python -m ds_agents.agents.market_anomalies_agent "your question"
 
 Best practices used:
 - MCPServerStdio lifecycle as async context manager
-- Prefer MCP tools; fall back to SQL via query_anomalies with {{MLA}} macro
+- Prefer MCP tools; fall back to SQL via query_table (alias: query_anomalies) with {{MLA}} macro
 - Minimal, composable design
 """
 

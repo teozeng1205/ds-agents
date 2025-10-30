@@ -1,1 +1,1 @@
-"""Local utilities for ds-agents."""
+"""Local utilities for ds_agents."""

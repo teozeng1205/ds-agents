@@ -17,11 +17,12 @@ from pathlib import Path
 import importlib.util
 
 from agents import Runner
+from ds_agents.mcp_agents import MarketAnomaliesMCPAgent
 
 
 def _load_anomalies_agent():
     root = Path(__file__).resolve().parents[2]
-    mod_path = root / "ds-agents" / "agents" / "market_anomalies_agent.py"
+    mod_path = root / "ds_agents" / "agents" / "market_anomalies_agent.py"
     spec = importlib.util.spec_from_file_location("market_anomalies_agent_module", mod_path)
     assert spec and spec.loader, f"Cannot load market_anomalies_agent from {mod_path}"
     module = importlib.util.module_from_spec(spec)
@@ -51,12 +52,7 @@ async def main() -> None:
             t0 = time.perf_counter()
             from agents.mcp import MCPServerStdio, create_static_tool_filter
             script = str((Path(__file__).resolve().parents[2] / 'ds-mcp' / 'scripts' / 'run_mcp_server.sh'))
-            allowed_tools = [
-                "query_anomalies",
-                "get_table_schema",
-                "get_available_customers",
-                "overview_anomalies_today",
-            ]
+            allowed_tools = MarketAnomaliesMCPAgent().allowed_tool_names()
             result = None
             out = ""
             try:

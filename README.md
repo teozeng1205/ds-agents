@@ -1,4 +1,4 @@
-ds-agents
+ds_agents
 
 - What: Minimal chat entrypoint for Provider and Market Anomalies agents. Uses `ds-mcp` servers over stdio.
 
@@ -9,8 +9,8 @@ ds-agents
   - Create repo `env.sh` with `AWS_PROFILE`, `AWS_DEFAULT_REGION`, `OPENAI_API_KEY`
 
 - Run
-  - Provider: `python ds-agents/chat.py --agent provider`
-  - Anomalies: `python ds-agents/chat.py --agent anomalies`
+  - Provider: `python ds_agents/chat.py --agent provider`
+  - Anomalies: `python ds_agents/chat.py --agent anomalies`
 
 - Docker
   - Build: `docker compose build`

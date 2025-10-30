@@ -6,11 +6,11 @@ Creates an agent (OpenAI Agents SDK) that connects to the ds-mcp Provider Combin
 server via stdio and answers provider audit questions.
 
 Usage:
-  python -m ds-agents.agents.provider_audit_agent "your question"
+  python -m ds_agents.agents.provider_audit_agent "your question"
 
 Best practices used:
 - MCPServerStdio lifecycle as async context manager
-- Prefer MCP tools; fall back to SQL via query_audit macros when needed
+- Prefer MCP tools; fall back to SQL via query_table (alias: query_audit) when needed
 - Minimal, composable design ready for more agents/handoffs later
 """
 
