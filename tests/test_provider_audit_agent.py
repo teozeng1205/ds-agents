@@ -17,11 +17,12 @@ from datetime import datetime
 import importlib.util
 from pathlib import Path
 from agents import Runner
+from ds_agents.mcp_agents import ProviderAuditMCPAgent
 
 
 def _load_provider_agent():
     root = Path(__file__).resolve().parents[2]
-    mod_path = root / "ds-agents" / "agents" / "provider_audit_agent.py"
+    mod_path = root / "ds_agents" / "agents" / "provider_audit_agent.py"
     spec = importlib.util.spec_from_file_location("provider_audit_agent_module", mod_path)
     assert spec and spec.loader, f"Cannot load provider_audit_agent from {mod_path}"
     module = importlib.util.module_from_spec(spec)
@@ -34,13 +35,22 @@ QUESTIONS = [
     "AA has a recent increase in site-related issues. What are the top site issues in the last 7 days?",
     "For provider AA, what is the scope of site issues in the last 3 days? Focus on observation hour and POS only.",
 
-    # Provider + sitecode
+    # Top issues overall / column awareness
+    "Looking at issue_sources and issue_reasons, what are the top site issues today overall?",
+    "Which site issue is most common for provider QL2 today? Include the issue_reasons / issue_sources label.",
+
+    # Provider + sitecode variations
     "Provider code QL2 with site code QF has an increase in site-related issues. What are the top site issues?",
     "Provider code QL2 with site code QF: Give a quick scope (observation hour and POS) in the last 3 days.",
+    "Provider UA quick scope in last 7 days (obs hour and POS).",
+    "What is the primary site issue for site UA over the past 7 days?",
+    "What is the top site issue for provider SK and site LH over the last 7 days?",
+
+    # Detailed two-part scenario (QL2/QF)
+    "QL2|QF has an increase in site related issues recently. 1) What are the top site issues? 2) What is the scope of the issue (obs hour, POS, triptype, LOS, O&D, cabin, depart periods, travel DOW)?",
 
     # A few more variations
     "For provider DL, list the top site-related issues in the past 7 days.",
-    "Provider UA quick scope in last 3 days (observation hour and POS).",
 ]
 
 
@@ -65,7 +75,7 @@ async def main() -> None:
             from agents.mcp import MCPServerStdio, create_static_tool_filter
             # Use unified ds-mcp server launcher
             script = str((Path(__file__).resolve().parents[2] / 'ds-mcp' / 'scripts' / 'run_mcp_server.sh'))
-            allowed_tools = ["top_site_issues", "issue_scope_combined", "get_table_schema"]
+            allowed_tools = ProviderAuditMCPAgent().allowed_tool_names()
             async with MCPServerStdio(
                 name="Provider Combined Audit (stdio)",
                 params={"command": "bash", "args": [script, 'provider']},
