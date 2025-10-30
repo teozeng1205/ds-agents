@@ -99,7 +99,7 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
             "     ORDER BY issue_count DESC\n"
             "     LIMIT 10;\n"
             "   • Scope breakdown (add/remove dims from {obs_hour,pos,od,cabin,triptype,los}; keep issue label and allow NULL/empty values):\n"
-            "     SELECT {{EVENT_TS:obs_hour}} AS obs_hour,\n"
+            "     SELECT {{EVENT_TS:obs_hour}},\n"
             "            NULLIF(TRIM(pos::VARCHAR), '') AS pos,\n"
             "            COALESCE(NULLIF(TRIM(issue_reasons::VARCHAR), ''), NULLIF(TRIM(issue_sources::VARCHAR), '')) AS issue_label,\n"
             "            COUNT(*) AS issue_count\n"
