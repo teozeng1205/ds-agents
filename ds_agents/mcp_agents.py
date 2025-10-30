@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 from typing import Sequence
 
@@ -13,6 +14,9 @@ from agents.mcp import MCPServerStdio, create_static_tool_filter
 class BaseMCPAgent:
     name: str = "MCP Agent"
     instructions: str = "Use configured tools to answer the user concisely."
+    # Canonical table tools shared by every ds-mcp table
+    base_tools: Sequence[str] = ("query_table", "get_table_schema")
+    # Subclasses can extend this with table-specific helpers or aliases
     allowed_tools: Sequence[str] = ()
     client_session_timeout_seconds: float = 180.0
 
@@ -50,7 +54,7 @@ class BaseMCPAgent:
             params={"command": "bash", "args": [script, server_kind], "env": {"PYTHON": sys.executable}},
             cache_tools_list=True,
             client_session_timeout_seconds=self.client_session_timeout_seconds,
-            tool_filter=create_static_tool_filter(allowed_tool_names=list(self.allowed_tools)),
+            tool_filter=create_static_tool_filter(allowed_tool_names=self.allowed_tool_names()),
         )
 
     async def run_once(self, question: str) -> str:
@@ -59,27 +63,62 @@ class BaseMCPAgent:
             result = await Runner.run(agent, input=question)
             return result.final_output or ""
 
+    def allowed_tool_names(self) -> list[str]:
+        """Return the combined list of canonical and table-specific tools."""
+        names: dict[str, None] = {tool: None for tool in self.base_tools}
+        for tool in self.allowed_tools:
+            names.setdefault(tool, None)
+        return list(names.keys())
+
 
 class ProviderAuditMCPAgent(BaseMCPAgent):
     name = "Provider Combined Audit (stdio)"
     server_kind = "provider"
     allowed_tools = (
         "query_audit",
-        "get_table_schema",
         "top_site_issues",
+        "top_site_issues_flex",
         "issue_scope_combined",
+        "issue_scope_combined_flex",
     )
 
     def __init__(self) -> None:
         instructions = (
-            "You are the Provider Combined Audit agent. Default to using query_audit with SQL macros.\n"
-            "Prefer the issue_scope_combined tool when the user asks for multi-dimension scope (obs_hour/POS/triptype/LOS/OD/cabin/depart periods).\n\n"
-            "Guidance:\n"
-            "- Use sales_date (YYYYMMDD int) for time filters and partition pruning.\n"
-            "- For site issues, select COALESCE(issue_reasons, issue_sources) as issue_key and filter out empty values.\n"
-            "- For scope, call issue_scope_combined with dims like ['obs_hour','pos','triptype','los'] and provider/site.\n"
-            "- For today vs usual (7-day average), compute via sales_date; avoid casting timestamps for coarse date filters.\n"
-            "- Keep answers concise with clear bullets; order by importance.\n"
+            "You are the Provider Combined Audit agent.\n"
+            "Workflow:\n"
+            "1. Parse each request for provider, site, time window, and requested dimensions. Normalise provider/site codes to uppercase strings.\n"
+            "2. Default path: run query_audit with safe SQL templates that use macros.\n"
+            "   • Top site issues (replace PROVIDER_CODE and DAYS before executing):\n"
+            "     SELECT NULLIF(TRIM(sitecode::VARCHAR), '') AS site,\n"
+            "            COUNT(*) AS issue_count\n"
+            "     FROM {{PCA}}\n"
+            "     WHERE providercode = 'PROVIDER_CODE'\n"
+            "       AND sales_date >= CAST(TO_CHAR(CURRENT_DATE - DAYS, 'YYYYMMDD') AS INT)\n"
+            "       AND {{ISSUE_TYPE}} IS NOT NULL\n"
+            "       AND NULLIF(TRIM(sitecode::VARCHAR), '') IS NOT NULL\n"
+            "     GROUP BY 1\n"
+            "     ORDER BY issue_count DESC\n"
+            "     LIMIT 10;\n"
+            "   • Scope breakdown (add/remove dimensions from {obs_hour,pos,od,cabin,triptype,los} using macros such as {{EVENT_TS:obs_hour}}):\n"
+            "     SELECT {{EVENT_TS:obs_hour}} AS obs_hour,\n"
+            "            NULLIF(TRIM(pos::VARCHAR), '') AS pos,\n"
+            "            COUNT(*) AS issue_count\n"
+            "     FROM {{PCA}}\n"
+            "     WHERE providercode = 'PROVIDER_CODE'\n"
+            "       AND sitecode = 'SITE_CODE'\n"
+            "       AND sales_date >= CAST(TO_CHAR(CURRENT_DATE - DAYS, 'YYYYMMDD') AS INT)\n"
+            "       AND {{ISSUE_TYPE}} IS NOT NULL\n"
+            "     GROUP BY 1, 2\n"
+            "     ORDER BY issue_count DESC\n"
+            "     LIMIT 10;\n"
+            "   Substitute the correct provider/site, adjust DAYS/LIMIT, and extend the SELECT/GROUP BY clauses when additional dims are needed.\n"
+            "3. If a published tool meets the need, you may call the *_flex helpers; always supply the natural-language question in the \"request\" argument plus explicit provider/site when known (e.g., {\"tool\": \"top_site_issues_flex\", \"arguments\": {\"request\": \"Top site issues for provider QL2 last 3 days\", \"lookback_days\": 3, \"limit\": 10}}).\n"
+            "4. After any tool call, parse the JSON string with json.loads. If it contains \"error\", report the failure succinctly. If row_count == 0, reply that no matching rows were found. Summaries must be concise bullet points that cite the tool (e.g., “- EXP: 82k issues (query_audit)”).\n"
+            "5. Never reference the table directly—always rely on macros such as {{PCA}}, {{ISSUE_TYPE}}, and {{EVENT_TS:alias}}. Use single quotes for string literals.\n\n"
+            "Data notes:\n"
+            "- sales_date is INT YYYYMMDD; use CAST(TO_CHAR(CURRENT_DATE - N, 'YYYYMMDD') AS INT) for rolling windows.\n"
+            "- Issue labels come from COALESCE(issue_reasons, issue_sources) and should exclude empty strings.\n"
+            "- observationtimestamp / actualscheduletimestamp combine via COALESCE, then DATE_TRUNC('hour', ...) yields obs_hour.\n"
         )
         super().__init__(name=self.name, instructions=instructions)
 
@@ -93,18 +132,21 @@ class MarketAnomaliesMCPAgent(BaseMCPAgent):
     server_kind = "anomalies"
     allowed_tools = (
         "query_anomalies",
-        "get_table_schema",
         "get_available_customers",
         "overview_anomalies_today",
     )
 
     def __init__(self) -> None:
         instructions = (
-            "You are the Market Anomalies agent. Default to using query_anomalies with {{MLA}} macros.\n"
-            "Use get_table_schema and overview_anomalies_today when asked for structure or today overview.\n\n"
-            "Guidance:\n"
-            "- Default: write a SELECT (or WITH) using {{MLA}} and call query_anomalies.\n"
-            "- Keep answers concise with clear bullets; order by importance.\n"
+            "You are the Market Anomalies agent.\n"
+            "Prefer the table-specific tools first:\n"
+            "- get_available_customers(limit=...) for customer counts.\n"
+            "- overview_anomalies_today(customer=..., per_dim_limit=...) for today's buckets.\n"
+            "- query_anomalies/query_table is the fallback; when writing SQL use the {{MLA}} macro for the table name.\n\n"
+            "Data guidance:\n"
+            "- Column names: sales_date (INT YYYYMMDD), customer, cp (competitive position), any_anomaly, impact_score, etc. There is no column named competitive_position or anomaly_date—use cp and sales_date instead.\n"
+            "- Always include LIMIT clauses (tools enforce sensible defaults).\n"
+            "- Keep answers concise with bullet points ordered by importance and note which tool produced the insight.\n"
         )
         super().__init__(name=self.name, instructions=instructions)
 
@@ -118,4 +160,3 @@ __all__ = [
     "ProviderAuditMCPAgent",
     "MarketAnomaliesMCPAgent",
 ]
-
