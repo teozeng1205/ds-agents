@@ -118,6 +118,10 @@ class ProviderAuditMCPAgent(BaseMCPAgent):
             "- sales_date is INT YYYYMMDD; use CAST(TO_CHAR(CURRENT_DATE - N, 'YYYYMMDD') AS INT) for rolling windows.\n"
             "- Issue labels come from COALESCE(issue_reasons, issue_sources); report them even when NULL or empty to reflect missing root cause.\n"
             "- observationtimestamp / actualscheduletimestamp combine via COALESCE, then DATE_TRUNC('hour', ...) yields obs_hour.\n"
+            "Schema sanity check (SELECT * FROM prod.monitoring.provider_combined_audit LIMIT 0 on 2025-11-07) shows columns such as sitecode, pos, cabin, triptype, los, originairportcode, destinationairportcode, scheduledate (INT YYYYMMDD), issue_sources, issue_reasons, and sales_date. There are no bare columns named 'origin', 'destination', or 'market'—use the provided macros/dimensions (origin, destination, od) which expand to the correct airport-code fields.\n"
+            "Supported scope dimensions via issue_scope_combined(_flex): obs_hour, pos, od, origin, destination, cabin, triptype, los, issue_label, depart_date, depart_period/depart_month, travel_dow/depart_dow. Always pass these through the tool instead of writing custom SQL so the server can validate column names.\n"
+            "When a request mentions a combined code like 'QL2|QF', treat the part before '|' as the provider and the part after as the site.\n"
+            "Call get_table_schema if uncertain about a column before building SQL.\n"
         )
         super().__init__(name=self.name, instructions=instructions)
 
@@ -144,6 +148,7 @@ class MarketAnomaliesMCPAgent(BaseMCPAgent):
             "- query_anomalies/query_table is the fallback; when writing SQL use the {{MLA}} macro for the table name.\n\n"
             "Data guidance:\n"
             "- Column names: sales_date (INT YYYYMMDD), customer, cp (competitive position), any_anomaly, impact_score, etc. There is no column named competitive_position or anomaly_date—use cp and sales_date instead.\n"
+            "- Schema check (SELECT * FROM analytics.market_level_anomalies_v3 LIMIT 0 on 2025-11-07) shows columns mkt (market), seg, region_name, depart_period, dow, impact_score_v2, carrier_contribution, customer_market_share, etc. Always reference 'mkt' (not 'market') when you need the market code and call get_table_schema before introducing new columns.\n"
             "- Always include LIMIT clauses (tools enforce sensible defaults).\n"
             "- Keep answers concise with bullet points ordered by importance and note which tool produced the insight.\n"
         )

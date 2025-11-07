@@ -22,7 +22,7 @@ from ds_agents.mcp_agents import ProviderAuditMCPAgent
 
 def _load_provider_agent():
     root = Path(__file__).resolve().parents[2]
-    mod_path = root / "ds_agents" / "agents" / "provider_audit_agent.py"
+    mod_path = root / "ds-agents" / "agents" / "provider_audit_agent.py"
     spec = importlib.util.spec_from_file_location("provider_audit_agent_module", mod_path)
     assert spec and spec.loader, f"Cannot load provider_audit_agent from {mod_path}"
     module = importlib.util.module_from_spec(spec)
