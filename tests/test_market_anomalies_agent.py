@@ -22,7 +22,7 @@ from ds_agents.mcp_agents import MarketAnomaliesMCPAgent
 
 def _load_anomalies_agent():
     root = Path(__file__).resolve().parents[2]
-    mod_path = root / "ds_agents" / "agents" / "market_anomalies_agent.py"
+    mod_path = root / "ds-agents" / "agents" / "market_anomalies_agent.py"
     spec = importlib.util.spec_from_file_location("market_anomalies_agent_module", mod_path)
     assert spec and spec.loader, f"Cannot load market_anomalies_agent from {mod_path}"
     module = importlib.util.module_from_spec(spec)
