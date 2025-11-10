@@ -11,6 +11,8 @@ ds_agents
 - Run
   - Provider: `python ds_agents/chat.py --agent provider`
   - Anomalies: `python ds_agents/chat.py --agent anomalies`
+  - Generic agent will prompt you to select which tables/slugs to enable (or choose ALL) before chatting
+  - Enable manual SQL with `--allow-query-table`
 
 - Docker
   - Build: `docker compose build`
