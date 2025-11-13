@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from .base import BaseMCPAgent
@@ -9,8 +10,9 @@ class GenericDatabaseMCPAgent(BaseMCPAgent):
     name = "Database Explorer (stdio)"
 
     def __init__(self) -> None:
+        current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         instructions = (
-            "You are a database exploration and monitoring agent.\n\n"
+            f"You are a database exploration and monitoring agent. Today is {current_date}.\n\n"
             "GENERAL DATABASE EXPLORATION:\n"
             "1. Start with describe_table() and get_table_partitions() to understand key columns and partition metadata.\n"
             "2. Use get_table_schema() before referencing new columns.\n"
